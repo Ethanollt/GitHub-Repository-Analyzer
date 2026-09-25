@@ -3,42 +3,76 @@ import sys
 
 
 def analyze_repository(repo):
-    url = f"https://api.github.com/repos/{repo}"
-
-    response = requests.get(url)
+    # Get basic repository information
+    repo_url = f"https://api.github.com/repos/{repo}"
+    response = requests.get(repo_url)
 
     if response.status_code == 404:
-        print("Repository not found.")
+        print("\n Repository not found.")
         return
 
     if response.status_code != 200:
-        print(f"GitHub API error: {response.status_code}")
+        print(f"\n GitHub API error: {response.status_code}")
         return
 
     data = response.json()
 
-    print("=" * 50)
-    print("GitHub Repository Analyzer")
-    print("=" * 50)
+    # Get language information
+    languages_url = f"https://api.github.com/repos/{repo}/languages"
+    languages_response = requests.get(languages_url)
 
-    print(f"\nRepository: {data['full_name']}")
-    print(f"Description: {data['description']}")
-    print(f"Language: {data['language']}")
+    if languages_response.status_code == 200:
+        languages = languages_response.json()
+    else:
+        languages = {}
 
-    print(f"\n⭐ Stars: {data['stargazers_count']:,}")
-    print(f"🍴 Forks: {data['forks_count']:,}")
-    print(f"🐛 Open Issues: {data['open_issues_count']:,}")
+    # Calculate language percentages
+    total_bytes = sum(languages.values())
 
-    print(f"\nCreated: {data['created_at'][:10]}")
-    print(f"Last Updated: {data['updated_at'][:10]}")
+    print("\n" + "=" * 55)
+    print("              GITHUB REPOSITORY ANALYZER")
+    print("=" * 55)
 
-    print(f"\nRepository URL:")
-    print(data['html_url'])
+    print(f"\n Repository")
+    print(f"   {data['full_name']}")
 
-    print("=" * 50)
+    print(f"\n Description")
+    print(f"   {data['description'] or 'No description available'}")
+
+    print(f"\n Statistics")
+    print(f"    Stars:        {data['stargazers_count']:,}")
+    print(f"    Forks:        {data['forks_count']:,}")
+    print(f"    Open Issues:  {data['open_issues_count']:,}")
+    print(f"    Size:         {data['size']:,} KB")
+
+    print(f"\n Dates")
+    print(f"   Created:         {data['created_at'][:10]}")
+    print(f"   Last Updated:    {data['updated_at'][:10]}")
+
+    print(f"\n Languages")
+
+    if languages:
+        for language, bytes_used in languages.items():
+            percentage = (bytes_used / total_bytes) * 100
+            bar_length = int(percentage / 5)
+
+            bar = "█" * bar_length
+
+            print(f"   {language:<15} {bar:<20} {percentage:5.1f}%")
+    else:
+        print("   No language data available.")
+
+    print("\n Repository URL")
+    print(f"   {data['html_url']}")
+
+    print("\n" + "=" * 55)
 
 
+# Make sure the user provided a repository
 if len(sys.argv) != 2:
-    print("Usage: python analyzer.py <owner/repository>")
+    print("\nUsage:")
+    print("   py analyzer.py <owner/repository>")
+    print("\nExample:")
+    print("   py analyzer.py facebook/react")
 else:
     analyze_repository(sys.argv[1])
